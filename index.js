@@ -1,6 +1,6 @@
-require("dotenv").config()
 const express = require('express')
 const morgan = require("morgan")
+
 const app = express()
 const cors = require("cors")
 
@@ -12,7 +12,23 @@ app.use(express.static('build'))
 morgan.token('body', function (req, res) { return JSON.stringify(req.body) });
 app.use(morgan(':method :url :status :response-time ms - :res[content-length] :body - :req[content-length]'));
 
-const Person = require("./models/person")
+const mongoose = require('mongoose')
+
+const password = process.argv[2]
+const name = process.argv[3]
+const number = process.argv[4]
+
+const url =
+  `mongodb+srv://rauhala:${password}@cluster0-y4sfi.mongodb.net/phonebook?retryWrites=true&w=majority`
+
+mongoose.connect(url, { useNewUrlParser: true, useUnifiedTopology: true })
+
+const personSchema = new mongoose.Schema({
+  name: String,
+  number: String
+})
+
+const Person = mongoose.model('Person', personSchema)
 
 const requestLogger = (request, response, next) => {
   console.log('Method:', request.method)
@@ -58,9 +74,7 @@ app.get("/info", (req, res) => {
 })
 
 app.get("/api/persons", (request, response) => {
-  Person.find({}).then(persons => {
-    response.json(persons.map(person => person.toJSON()))
-  })
+  response.json(persons)
 })
 
 app.get('/api/persons/:id', (request, response) => {
@@ -79,9 +93,8 @@ app.get('/api/persons/:id', (request, response) => {
 
 app.delete("/api/persons/:id", (request, response) => {
   const id = Number(request.params.id)
-  Person.findById(id).then(person => {
-    response.json(person.toJSON())
-  })
+  persons = persons.filter(person => person.id !== id)
+  response.status(204).end()
 })
 
 const generateId = () => {
@@ -95,6 +108,7 @@ const generateId = () => {
 app.post("/api/persons", (request, response) => {
   const body = request.body
 
+
   if (persons.find(person => person.name === body.name)) {
     return response.status(400).json({
       error: 'this persons has already been added'
@@ -107,14 +121,14 @@ app.post("/api/persons", (request, response) => {
     }
   }
 
-  const person = new Person({
+  const person = {
     name: body.name,
-    number: body.number
-  })
+    number: body.number,
+    id: generateId()
+  }
 
-  person.save().then(savedPerson => {
-    response.json(savedPerson.toJSON())
-  })
+  persons = persons.concat(person)
+  response.json(person)
 
 })
 
@@ -124,7 +138,7 @@ const unknownEndpoint = (request, response) => {
 
 app.use(unknownEndpoint)
 
-const port = process.env.PORT
+const port = process.env.PORT || 3001
 
 app.listen(port, () => {
   console.log(`Server running on port ${port}`)
