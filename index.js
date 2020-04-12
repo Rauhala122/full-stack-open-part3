@@ -1,6 +1,6 @@
+require("dotenv").config()
 const express = require('express')
 const morgan = require("morgan")
-
 const app = express()
 const cors = require("cors")
 
@@ -11,6 +11,8 @@ app.use(express.static('build'))
 
 morgan.token('body', function (req, res) { return JSON.stringify(req.body) });
 app.use(morgan(':method :url :status :response-time ms - :res[content-length] :body - :req[content-length]'));
+
+const Person = require("./models/person")
 
 const requestLogger = (request, response, next) => {
   console.log('Method:', request.method)
@@ -56,8 +58,9 @@ app.get("/info", (req, res) => {
 })
 
 app.get("/api/persons", (request, response) => {
-  response.json(persons)
-
+  Person.find({}).then(persons => {
+    response.json(persons.map(person => person.toJSON()))
+  })
 })
 
 app.get('/api/persons/:id', (request, response) => {
@@ -76,8 +79,9 @@ app.get('/api/persons/:id', (request, response) => {
 
 app.delete("/api/persons/:id", (request, response) => {
   const id = Number(request.params.id)
-  persons = persons.filter(person => person.id !== id)
-  response.status(204).end()
+  Person.findById(id).then(person => {
+    response.json(person.toJSON())
+  })
 })
 
 const generateId = () => {
@@ -91,7 +95,6 @@ const generateId = () => {
 app.post("/api/persons", (request, response) => {
   const body = request.body
 
-
   if (persons.find(person => person.name === body.name)) {
     return response.status(400).json({
       error: 'this persons has already been added'
@@ -104,14 +107,14 @@ app.post("/api/persons", (request, response) => {
     }
   }
 
-  const person = {
+  const person = new Person({
     name: body.name,
-    number: body.number,
-    id: generateId()
-  }
+    number: body.number
+  })
 
-  persons = persons.concat(person)
-  response.json(person)
+  person.save().then(savedPerson => {
+    response.json(savedPerson.toJSON())
+  })
 
 })
 
@@ -121,7 +124,7 @@ const unknownEndpoint = (request, response) => {
 
 app.use(unknownEndpoint)
 
-const port = process.env.PORT || 3001
+const port = process.env.PORT
 
 app.listen(port, () => {
   console.log(`Server running on port ${port}`)
