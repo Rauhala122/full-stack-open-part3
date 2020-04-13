@@ -32,8 +32,16 @@ const url =
 mongoose.connect(url, { useNewUrlParser: true, useUnifiedTopology: true })
 
 const personSchema = new mongoose.Schema({
-  name: String,
-  number: String
+  name: {
+    type: String,
+    minlength: 1,
+    required: true
+  },
+  number: {
+    type: String,
+    minlength: 8,
+    required: true
+  },
 })
 
 personSchema.set('toJSON', {
@@ -121,16 +129,10 @@ const generateId = () => {
 app.post("/api/persons", (request, response) => {
   const body = request.body
 
-  if (persons.find(person => person.name === body.name)) {
+  if (Person.find({ name: body.name }) ) {
     return response.status(400).json({
       error: 'this persons has already been added'
     })
-  } else {
-    if (!body.name || !body.number) {
-      return response.status(400).json({
-        error: 'content missing'
-      })
-    }
   }
 
   const person = new Person({
@@ -138,9 +140,11 @@ app.post("/api/persons", (request, response) => {
     number: body.number
   })
 
-  person.save().then(savedPerson => {
-    response.json(savedPerson.toJSON())
-  })
+  person.save().then(savedPerson =>  savedPerson.toJSON())
+    .then(savedAndFormattedPerson => {
+      response.json(savedAndFormattedPerson)
+    })
+  .catch(error => next(error))
 
 })
 
@@ -170,6 +174,8 @@ const errorHandler = (error, request, response, next) => {
 
   if (error.name === 'CastError' && error.kind == 'ObjectId') {
     return response.status(400).send({ error: 'malformatted id' })
+  } else if (error.name === 'ValidationError') {
+    return response.status(400).json({ error: error.message })
   }
 
   next(error)
