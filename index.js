@@ -23,6 +23,7 @@ const requestLogger = (request, response, next) => {
 }
 
 const mongoose = require('mongoose')
+const uniqueValidator = require('mongoose-unique-validator');
 
 mongoose.set('useFindAndModify', false)
 
@@ -43,6 +44,8 @@ const personSchema = new mongoose.Schema({
     required: true
   }
 })
+
+personSchema.plugin(uniqueValidator);
 
 personSchema.set('toJSON', {
   transform: (document, returnedObject) => {
@@ -129,29 +132,41 @@ const generateId = () => {
 app.post("/api/persons", (request, response, next) => {
   const body = request.body
 
-  Person.find({}).then(result => {
-    console.log("Phonebook")
-    result.forEach(person => {
-      if (person.name === body.name) {
-        return response.status(400).json({
-             error: 'this persons has already been added'
-         })
-      }
-    })
-
-  })
+  // Person.find({}).then(result => {
+  //   console.log("Phonebook")
+  //
+  //   result.forEach(person => {
+  //     if (person.name === body.name) {
+  //       isAlreadyCreated = true
+  //       return response.status(400).json({
+  //            error: 'this persons has already been added'
+  //        })
+  //     }
+  //   })
+  //
+  // })
 
   const person = new Person({
     name: body.name,
     number: body.number
   })
 
-  person.save()
-    .then(savedPerson =>  savedPerson.toJSON())
-    .then(savedAndFormattedPerson => {
-      response.json(savedAndFormattedPerson)
+  Person.find({ name: body.name }).then(persons => {
+    if (persons.length === 0 ) {
+
+      person.save()
+        .then(savedPerson =>  savedPerson.toJSON())
+        .then(savedAndFormattedPerson => {
+          response.json(savedAndFormattedPerson)
+      })
+        .catch(error => next(error))
+
+    } else {
+      return response.status(400).json({
+        error: 'this persons has already been added'
+      })
+    }
   })
-    .catch(error => next(error))
 
 })
 
