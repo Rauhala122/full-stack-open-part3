@@ -4,6 +4,7 @@ require('dotenv').config()
 const app = express()
 const cors = require("cors")
 
+const Person = require("./models/person")
 
 app.use(express.json())
 app.use(morgan('tiny'))
@@ -21,28 +22,6 @@ const requestLogger = (request, response, next) => {
   console.log('---')
   next()
 }
-
-const mongoose = require('mongoose')
-
-const url =
-  `mongodb+srv://rauhala:tarkman51@cluster0-y4sfi.mongodb.net/phonebook?retryWrites=true&w=majority`
-
-mongoose.connect(url, { useNewUrlParser: true, useUnifiedTopology: true })
-
-const personSchema = new mongoose.Schema({
-  name: String,
-  number: String
-})
-
-personSchema.set('toJSON', {
-  transform: (document, returnedObject) => {
-    returnedObject.id = returnedObject._id.toString()
-    delete returnedObject._id
-    delete returnedObject.__v
-  }
-})
-
-const Person = mongoose.model('Person', personSchema)
 
 app.use(requestLogger)
 
@@ -82,22 +61,14 @@ app.get("/info", (req, res) => {
 app.get("/api/persons", (request, response) => {
   Person.find({}).then(persons => {
     response.json(persons.map(person => person.toJSON()))
-    console.log(persons)
   })
 })
 
 app.get('/api/persons/:id', (request, response) => {
-  const id = Number(request.params.id)
-  const person = persons.find(person => {
-    return person.id === id
+  Person.findById(request.params.id).then(person => {
+    response.json(person.toJSON())
+    console.log(person)
   })
-  if (person) {
-    response.json(person)
-  } else {
-    response.status(404).end()
-  }
-  console.log(person.name)
-  console.log(id + " gotten")
 })
 
 app.delete("/api/persons/:id", (request, response) => {
