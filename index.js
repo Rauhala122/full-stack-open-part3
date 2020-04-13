@@ -3,13 +3,13 @@ const morgan = require("morgan")
 require('dotenv').config()
 const app = express()
 const cors = require("cors")
+const Person = require("./models/person")
 
 app.use(express.json())
 app.use(morgan('tiny'))
 app.use(cors())
 app.use(express.static('build'))
 
-const Person = require("./models/person")
 
 morgan.token('body', function (req, res) { return JSON.stringify(req.body) });
 app.use(morgan(':method :url :status :response-time ms - :res[content-length] :body - :req[content-length]'));
@@ -125,7 +125,7 @@ const unknownEndpoint = (request, response) => {
 
 app.use(unknownEndpoint)
 
-const port = process.env.PORT || 3001
+const port = process.env.PORT
 
 app.listen(port, () => {
   console.log(`Server running on port ${port}`)
