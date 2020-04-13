@@ -20,30 +20,29 @@ const requestLogger = (request, response, next) => {
   next()
 }
 
-app.use(requestLogger)
+const mongoose = require('mongoose')
 
-let persons = [
-    {
-      "name": "Arto Hellas",
-      "number": "040-123456",
-      "id": 1
-    },
-    {
-      "name": "Ada Lovelace",
-      "number": "39-44-5323523",
-      "id": 2
-    },
-    {
-      "name": "Dan Abramov",
-      "number": "12-43-234345",
-      "id": 3
-    },
-    {
-      "name": "Mary Poppendieck",
-      "number": "39-23-6423122",
-      "id": 4
-    }
-]
+const url =
+  `mongodb+srv://rauhala:tarkman51@cluster0-y4sfi.mongodb.net/phonebook?retryWrites=true&w=majority`
+
+mongoose.connect(url, { useNewUrlParser: true, useUnifiedTopology: true })
+
+const personSchema = new mongoose.Schema({
+  name: String,
+  number: String
+})
+
+personSchema.set('toJSON', {
+  transform: (document, returnedObject) => {
+    returnedObject.id = returnedObject._id.toString()
+    delete returnedObject._id
+    delete returnedObject.__v
+  }
+})
+
+const Person = mongoose.model('Person', personSchema)
+
+app.use(requestLogger)
 
 app.get("/", (req, res) => {
   res.send("<h2>Hello world </h2>")
@@ -56,8 +55,10 @@ app.get("/info", (req, res) => {
 })
 
 app.get("/api/persons", (request, response) => {
-  response.json(persons)
-
+  Person.find({}).then(persons => {
+    response.json(persons.map(person => person.toJSON()))
+    console.log(persons)
+  })
 })
 
 app.get('/api/persons/:id', (request, response) => {
@@ -76,8 +77,9 @@ app.get('/api/persons/:id', (request, response) => {
 
 app.delete("/api/persons/:id", (request, response) => {
   const id = Number(request.params.id)
-  persons = persons.filter(person => person.id !== id)
-  response.status(204).end()
+  Person.findById(id).then(person => {
+    response.json(person.toJSON())
+  })
 })
 
 const generateId = () => {
@@ -91,7 +93,6 @@ const generateId = () => {
 app.post("/api/persons", (request, response) => {
   const body = request.body
 
-
   if (persons.find(person => person.name === body.name)) {
     return response.status(400).json({
       error: 'this persons has already been added'
@@ -104,14 +105,15 @@ app.post("/api/persons", (request, response) => {
     }
   }
 
-  const person = {
+  const person = new Person({
     name: body.name,
-    number: body.number,
-    id: generateId()
-  }
+    number: body.number
+  })
 
-  persons = persons.concat(person)
-  response.json(person)
+  person.save().then(savedPerson => {
+    response.json(savedPerson)
+    console.log(savedPerson)
+  })
 
 })
 
