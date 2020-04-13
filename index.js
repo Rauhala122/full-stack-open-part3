@@ -24,6 +24,8 @@ const requestLogger = (request, response, next) => {
 
 const mongoose = require('mongoose')
 
+mongoose.set('useFindAndModify', false)
+
 const url =
   `mongodb+srv://rauhala:tarkman51@cluster0-y4sfi.mongodb.net/phonebook?retryWrites=true&w=majority`
 
@@ -103,7 +105,6 @@ app.get('/api/persons/:id', (request, response) => {
 app.delete("/api/persons/:id", (request, response, next) => {
   Person.findByIdAndRemove(request.params.id)
     .then(result => {
-      console.log("person deleted")
       response.status(204).end()
     })
     .catch(error => next(error))
@@ -141,6 +142,21 @@ app.post("/api/persons", (request, response) => {
     response.json(savedPerson.toJSON())
   })
 
+})
+
+app.put("/api/persons/:id", (request, response, next) => {
+  const body = request.body
+
+  const person = {
+    name: body.name,
+    number: body.number
+  }
+
+  Person.findByIdAndUpdate(request.params.id, person, { new: true })
+    .then(updatedPerson => {
+      response.json(updatedPerson.toJSON())
+    })
+    .catch(error => next(error))
 })
 
 const unknownEndpoint = (request, response) => {
