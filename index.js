@@ -66,9 +66,16 @@ app.get("/api/persons", (request, response) => {
 
 app.get('/api/persons/:id', (request, response) => {
   const id = Number(request.params.id)
-  Person.findById(id).then(person => {
-    response.json(person.toJSON())
+  const person = persons.find(person => {
+    return person.id === id
   })
+  if (person) {
+    response.json(person)
+  } else {
+    response.status(404).end()
+  }
+  console.log(person.name)
+  console.log(id + " gotten")
 })
 
 app.delete("/api/persons/:id", (request, response) => {
@@ -118,7 +125,7 @@ const unknownEndpoint = (request, response) => {
 
 app.use(unknownEndpoint)
 
-const port = process.env.PORT
+const port = process.env.PORT || 3001
 
 app.listen(port, () => {
   console.log(`Server running on port ${port}`)
