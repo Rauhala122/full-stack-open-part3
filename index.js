@@ -34,14 +34,14 @@ mongoose.connect(url, { useNewUrlParser: true, useUnifiedTopology: true })
 const personSchema = new mongoose.Schema({
   name: {
     type: String,
-    minlength: 1,
+    minlength: 3,
     required: true
   },
   number: {
     type: String,
     minlength: 8,
     required: true
-  },
+  }
 })
 
 personSchema.set('toJSON', {
@@ -126,25 +126,32 @@ const generateId = () => {
   return getRandomInt(1000000)
 }
 
-app.post("/api/persons", (request, response) => {
+app.post("/api/persons", (request, response, next) => {
   const body = request.body
 
-  if (Person.find({ name: body.name }) ) {
-    return response.status(400).json({
-      error: 'this persons has already been added'
+  Person.find({}).then(result => {
+    console.log("Phonebook")
+    result.forEach(person => {
+      if (person.name === body.name) {
+        return response.status(400).json({
+             error: 'this persons has already been added'
+         })
+      }
     })
-  }
+
+  })
 
   const person = new Person({
     name: body.name,
     number: body.number
   })
 
-  person.save().then(savedPerson =>  savedPerson.toJSON())
+  person.save()
+    .then(savedPerson =>  savedPerson.toJSON())
     .then(savedAndFormattedPerson => {
       response.json(savedAndFormattedPerson)
-    })
-  .catch(error => next(error))
+  })
+    .catch(error => next(error))
 
 })
 
