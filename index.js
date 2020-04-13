@@ -87,16 +87,26 @@ app.get("/api/persons", (request, response) => {
 
 app.get('/api/persons/:id', (request, response) => {
   Person.findById(request.params.id).then(person => {
-    response.json(person.toJSON())
-    console.log(person)
+    if (person) {
+      response.json(person.toJSON())
+    } else {
+      response.status(404).end()
+    }
   })
+  .catch(error => {
+    console.log("ERROR ", error)
+    response.status(400).send({ error: 'malformatted id' })
+  })
+  .catch(error => next(error))
 })
 
-app.delete("/api/persons/:id", (request, response) => {
-  const id = Number(request.params.id)
-  Person.findById(id).then(person => {
-    response.json(person.toJSON())
-  })
+app.delete("/api/persons/:id", (request, response, next) => {
+  Person.findByIdAndRemove(request.params.id)
+    .then(result => {
+      console.log("person deleted")
+      response.status(204).end()
+    })
+    .catch(error => next(error))
 })
 
 const generateId = () => {
@@ -138,6 +148,18 @@ const unknownEndpoint = (request, response) => {
 }
 
 app.use(unknownEndpoint)
+
+const errorHandler = (error, request, response, next) => {
+  console.error(error.message)
+
+  if (error.name === 'CastError' && error.kind == 'ObjectId') {
+    return response.status(400).send({ error: 'malformatted id' })
+  }
+
+  next(error)
+}
+
+app.use(errorHandler)
 
 const port = process.env.PORT
 
