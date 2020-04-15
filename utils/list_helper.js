@@ -32,7 +32,6 @@ const mostBlogs = (blogs) => {
   const authors = blogs.map(blog => {
     return blog.author
   })
-  console.log("authors ", authors)
 
   const authorUnique = (value, index, self) => {
     return self.indexOf(value) === index
