@@ -3,7 +3,7 @@ const morgan = require("morgan")
 require('dotenv').config()
 const app = express()
 const cors = require("cors")
-
+const Person = require("./models/person")
 
 app.use(express.json())
 app.use(morgan('tiny'))
@@ -21,41 +21,6 @@ const requestLogger = (request, response, next) => {
   console.log('---')
   next()
 }
-
-const mongoose = require('mongoose')
-const uniqueValidator = require('mongoose-unique-validator');
-
-mongoose.set('useFindAndModify', false)
-
-const url =
-  `mongodb+srv://rauhala:tarkman51@cluster0-y4sfi.mongodb.net/phonebook?retryWrites=true&w=majority`
-
-mongoose.connect(url, { useNewUrlParser: true, useUnifiedTopology: true })
-
-const personSchema = new mongoose.Schema({
-  name: {
-    type: String,
-    minlength: 3,
-    required: true
-  },
-  number: {
-    type: String,
-    minlength: 8,
-    required: true
-  }
-})
-
-personSchema.plugin(uniqueValidator);
-
-personSchema.set('toJSON', {
-  transform: (document, returnedObject) => {
-    returnedObject.id = returnedObject._id.toString()
-    delete returnedObject._id
-    delete returnedObject.__v
-  }
-})
-
-const Person = mongoose.model('Person', personSchema)
 
 app.use(requestLogger)
 
